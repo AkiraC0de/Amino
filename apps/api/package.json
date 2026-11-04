@@ -1,0 +1,30 @@
+{
+  "name": "@amino/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@amino/shared": "0.0.0",
+    "cors": "latest",
+    "express": "latest",
+    "helmet": "latest",
+    "pino": "latest",
+    "pino-http": "latest"
+  },
+  "devDependencies": {
+    "@types/cors": "latest",
+    "@types/express": "latest",
+    "@types/node": "latest",
+    "@types/pino-http": "latest",
+    "@types/supertest": "latest",
+    "supertest": "latest",
+    "tsup": "latest",
+    "tsx": "latest"
+  }
+}
