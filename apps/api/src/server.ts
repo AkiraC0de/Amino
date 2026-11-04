@@ -1,4 +1,5 @@
 import { createServer, type Server } from 'node:http';
+import { pathToFileURL } from 'node:url';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
 
@@ -23,6 +24,13 @@ export function createShutdown(server: ClosableServer, exit: (code: number) => v
   };
 }
 
+export function isMainModule(metaUrl: string, argv1: string | undefined): boolean {
+  if (argv1 === undefined) return false;
+  const fileUrl = pathToFileURL(argv1).href;
+  const posixFileUrl = argv1.startsWith('/') ? `file://${argv1}` : undefined;
+  return metaUrl === fileUrl || metaUrl === posixFileUrl;
+}
+
 export function startServer(): Server {
   const config = loadConfig(process.env);
   const app = createApp({});
@@ -36,6 +44,6 @@ export function startServer(): Server {
   return server;
 }
 
-if (import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}`) {
+if (isMainModule(import.meta.url, process.argv[1])) {
   startServer();
 }

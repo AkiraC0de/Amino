@@ -3,7 +3,17 @@ import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
-import { createShutdown } from './server.js';
+import { createShutdown, isMainModule } from './server.js';
+
+it.skipIf(process.platform !== 'win32')('recognizes Windows main module paths', () => {
+  expect(isMainModule('file:///C:/Users/x/server.ts', 'C:\\Users\\x\\server.ts')).toBe(true);
+});
+
+it('recognizes POSIX and mismatch main module paths', () => {
+  expect(isMainModule('file:///home/x/server.ts', '/home/x/server.ts')).toBe(true);
+  expect(isMainModule('file:///home/x/other.ts', '/home/x/server.ts')).toBe(false);
+  expect(isMainModule('file:///home/x/server.ts', undefined)).toBe(false);
+});
 import { validate } from './http/validate.js';
 
 const fakeDatabaseUrl = 'postgresql://user:pass@localhost:5432/test';
