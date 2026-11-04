@@ -4,6 +4,12 @@ export interface Config {
   nodeEnv: string;
 }
 
+export function sanitizeDatabaseUrl(rawDatabaseUrl: string): string {
+  const databaseUrl = new URL(rawDatabaseUrl);
+  databaseUrl.searchParams.delete('channel_binding');
+  return databaseUrl.toString().replace(/\/$/, '');
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv): Config {
   const rawDatabaseUrl = env.DATABASE_URL;
   if (!rawDatabaseUrl) {
@@ -16,12 +22,9 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     throw new Error('Invalid PORT');
   }
 
-  const databaseUrl = new URL(rawDatabaseUrl);
-  databaseUrl.searchParams.delete('channel_binding');
-
   return {
     port,
-    databaseUrl: databaseUrl.toString().replace(/\/$/, ''),
+    databaseUrl: sanitizeDatabaseUrl(rawDatabaseUrl),
     nodeEnv: env.NODE_ENV ?? 'development',
   };
 }
