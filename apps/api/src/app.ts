@@ -18,7 +18,7 @@ export function createApp(deps: AppDeps, extraRoutes?: (router: Router) => void)
   app.use(pinoHttp({ logger }));
   app.use(helmet());
   app.use(cors({ origin: process.env.WEB_ORIGIN ?? 'http://localhost:5173' }));
-  app.use(express.json());
+  app.use(express.json({ limit: '100kb' }));
   app.use(currentUser);
 
   app.get('/api/v1/health', (_req, res) => {

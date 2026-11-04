@@ -1,22 +1,41 @@
-import { createServer } from 'node:http';
+import { createServer, type Server } from 'node:http';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
 
-const config = loadConfig(process.env);
-const app = createApp({});
-const server = createServer(app);
+interface ClosableServer {
+  close(callback: (error?: Error) => void): void;
+  closeIdleConnections?: () => void;
+}
 
-server.listen(config.port, () => {
-  console.log(`API listening on port ${config.port}`);
-});
+export function createShutdown(server: ClosableServer, exit: (code: number) => void = process.exit): () => void {
+  let shuttingDown = false;
+  let forceTimer: ReturnType<typeof setTimeout> | undefined;
+  return () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    forceTimer = setTimeout(() => exit(1), 10_000);
+    forceTimer.unref();
+    server.close((error) => {
+      if (forceTimer) clearTimeout(forceTimer);
+      exit(error ? 1 : 0);
+    });
+    server.closeIdleConnections?.();
+  };
+}
 
-const shutdown = () => {
-  server.close((error) => {
-    if (error) {
-      process.exitCode = 1;
-    }
+export function startServer(): Server {
+  const config = loadConfig(process.env);
+  const app = createApp({});
+  const server = createServer(app);
+  server.listen(config.port, () => {
+    console.log(`API listening on port ${config.port}`);
   });
-};
+  const shutdown = createShutdown(server);
+  process.once('SIGTERM', shutdown);
+  process.once('SIGINT', shutdown);
+  return server;
+}
 
-process.once('SIGTERM', shutdown);
-process.once('SIGINT', shutdown);
+if (import.meta.url === `file://${process.argv[1]?.replaceAll('\\', '/')}`) {
+  startServer();
+}
