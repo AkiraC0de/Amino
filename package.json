@@ -1,0 +1,17 @@
+{
+  "name": "amino",
+  "private": true,
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w @amino/api\" \"npm run dev -w @amino/web\"",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
+  }
+}
