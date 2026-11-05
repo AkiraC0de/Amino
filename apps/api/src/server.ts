@@ -34,6 +34,29 @@ export function isMainModule(metaUrl: string, argv1: string | undefined): boolea
   return metaUrl === fileUrl || metaUrl === posixFileUrl;
 }
 
+/**
+ * Closes the HTTP server, then the database pool. The callback always runs, even when the
+ * pool fails to close, so shutdown reports the failure instead of waiting for the force timer.
+ */
+export function closeServerAndDatabase(
+  server: ClosableServer,
+  database: { close(): Promise<void> },
+  onDone: (error?: Error) => void,
+): void {
+  server.close((serverError) => {
+    database
+      .close()
+      .then(
+        () => onDone(serverError),
+        (databaseError: unknown) => onDone(serverError ?? toError(databaseError)),
+      );
+  });
+}
+
+function toError(value: unknown): Error {
+  return value instanceof Error ? value : new Error(String(value));
+}
+
 export function startServer(): Server {
   const config = loadConfig(process.env);
   const database = createDb(config.databaseUrl);
@@ -43,7 +66,10 @@ export function startServer(): Server {
   server.listen(config.port, () => {
     console.log(`API listening on port ${config.port}`);
   });
-  const shutdown = createShutdown({ close: (callback) => server.close((error) => { void database.close().then(() => callback(error)); }), closeIdleConnections: () => server.closeIdleConnections() });
+  const shutdown = createShutdown({
+    close: (callback) => closeServerAndDatabase(server, database, callback),
+    closeIdleConnections: () => server.closeIdleConnections(),
+  });
   process.once('SIGTERM', shutdown);
   process.once('SIGINT', shutdown);
   return server;
