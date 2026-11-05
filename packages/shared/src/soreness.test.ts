@@ -5,6 +5,7 @@ import {
   hoursUntilRecovered,
   muscleIntensities,
   type ExerciseDto,
+  type MuscleId,
   type SorenessEvent,
 } from './index.js';
 
@@ -44,6 +45,25 @@ describe('soreness math', () => {
   it('reports remaining recovery hours and zero for untouched muscles', () => {
     expect(hoursUntilRecovered([event(24)], 'chest', now)).toBe(24);
     expect(hoursUntilRecovered([], 'calves', now)).toBe(0);
+  });
+
+  it('returns zero for invalid dates across soreness calculations', () => {
+    const invalid: SorenessEvent = { muscleId: 'chest', role: 'primary', completedAt: 'not-a-date' };
+    expect(eventIntensity(invalid, now)).toBe(0);
+    expect(muscleIntensities([invalid], now).chest).toBe(0);
+    expect(hoursUntilRecovered([invalid], 'chest', now)).toBe(0);
+  });
+
+  it('ignores unknown muscles without affecting valid events', () => {
+    const unknown = { muscleId: 'neck' as MuscleId, role: 'primary' as const, completedAt: now.toISOString() };
+    const values = muscleIntensities([unknown, event(24)], now);
+    expect(Object.keys(values)).toEqual(expect.arrayContaining([
+      'chest', 'upper-back', 'lats', 'traps', 'shoulders', 'biceps', 'triceps', 'forearms',
+      'abs', 'obliques', 'lower-back', 'glutes', 'quads', 'hamstrings', 'calves',
+    ]));
+    expect(Object.keys(values)).toHaveLength(15);
+    expect(values.chest).toBe(0.5);
+    expect((values as Record<string, number>).neck).toBeUndefined();
   });
 
   it('collapses duplicate muscles with primary role winning', () => {

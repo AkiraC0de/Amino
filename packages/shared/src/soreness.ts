@@ -8,23 +8,35 @@ export interface SorenessEvent {
 }
 
 const roleWeight: Record<MuscleRole, number> = { primary: 1, secondary: 0.5 };
+const knownMuscles = new Set<MuscleId>(MUSCLE_IDS);
+
+function hoursSinceCompletion(completedAt: string, now: Date): number | null {
+  const completedTime = new Date(completedAt).getTime();
+  const nowTime = now.getTime();
+  if (!Number.isFinite(completedTime) || !Number.isFinite(nowTime)) return null;
+  return Math.max(0, (nowTime - completedTime) / 3_600_000);
+}
 
 export function eventIntensity(event: SorenessEvent, now: Date): number {
-  const hoursSince = Math.max(0, (now.getTime() - new Date(event.completedAt).getTime()) / 3_600_000);
+  const hoursSince = hoursSinceCompletion(event.completedAt, now);
+  if (hoursSince === null) return 0;
   return roleWeight[event.role] * Math.max(0, 1 - hoursSince / RECOVERY_HOURS);
 }
 
 export function muscleIntensities(events: SorenessEvent[], now: Date): Record<MuscleId, number> {
   const values = Object.fromEntries(MUSCLE_IDS.map((id) => [id, 0])) as Record<MuscleId, number>;
-  for (const event of events) values[event.muscleId] = Math.min(1, Math.max(values[event.muscleId], eventIntensity(event, now)));
+  for (const event of events) {
+    if (!knownMuscles.has(event.muscleId)) continue;
+    values[event.muscleId] = Math.min(1, Math.max(values[event.muscleId], eventIntensity(event, now)));
+  }
   return values;
 }
 
 export function hoursUntilRecovered(events: SorenessEvent[], muscleId: MuscleId, now: Date): number {
   const remaining = events.filter((event) => event.muscleId === muscleId).map((event) => {
-    const hoursSince = Math.max(0, (now.getTime() - new Date(event.completedAt).getTime()) / 3_600_000);
-    return Math.max(0, RECOVERY_HOURS - hoursSince);
-  });
+    const hoursSince = hoursSinceCompletion(event.completedAt, now);
+    return hoursSince === null ? null : Math.max(0, RECOVERY_HOURS - hoursSince);
+  }).filter((hours): hours is number => hours !== null && Number.isFinite(hours));
   return remaining.length ? Math.max(...remaining) : 0;
 }
 

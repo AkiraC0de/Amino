@@ -1,0 +1,39 @@
+{
+  "name": "@amino/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx --env-file=.env src/db/migrate.ts",
+    "db:seed": "tsx --env-file=.env src/db/seed/run.ts"
+  },
+  "dependencies": {
+    "@amino/shared": "0.0.0",
+    "@types/pg": "^8.23.1",
+    "cors": "latest",
+    "drizzle-kit": "^0.31.11",
+    "drizzle-orm": "^0.44.7",
+    "express": "latest",
+    "helmet": "latest",
+    "pg": "^8.16.3",
+    "pino": "latest",
+    "pino-http": "latest"
+  },
+  "devDependencies": {
+    "@types/cors": "latest",
+    "@types/express": "latest",
+    "@types/node": "latest",
+    "@types/pg": "^8.15.5",
+    "@types/pino-http": "latest",
+    "@types/supertest": "latest",
+    "drizzle-kit": "^0.31.4",
+    "supertest": "latest",
+    "tsup": "latest",
+    "tsx": "latest"
+  }
+}
