@@ -2,6 +2,9 @@ import { createServer, type Server } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
+import { createDb } from './db/client.js';
+import { createDrizzleWorkoutRepository } from './repositories/workouts.drizzle.js';
+import { createWorkoutService } from './services/workouts.js';
 
 interface ClosableServer {
   close(callback: (error?: Error) => void): void;
@@ -33,12 +36,14 @@ export function isMainModule(metaUrl: string, argv1: string | undefined): boolea
 
 export function startServer(): Server {
   const config = loadConfig(process.env);
-  const app = createApp({});
+  const database = createDb(config.databaseUrl);
+  const service = createWorkoutService(createDrizzleWorkoutRepository(database.db));
+  const app = createApp({ workouts: service });
   const server = createServer(app);
   server.listen(config.port, () => {
     console.log(`API listening on port ${config.port}`);
   });
-  const shutdown = createShutdown(server);
+  const shutdown = createShutdown({ close: (callback) => server.close((error) => { void database.close().then(() => callback(error)); }), closeIdleConnections: () => server.closeIdleConnections() });
   process.once('SIGTERM', shutdown);
   process.once('SIGINT', shutdown);
   return server;
